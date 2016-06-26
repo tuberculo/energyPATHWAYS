@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Mar 07 14:33:35 2016
-
-@author: Ben
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Created on Fri Mar 04 10:23:57 2016
 
 @author: Ben

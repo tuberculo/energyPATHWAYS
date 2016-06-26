@@ -292,9 +292,6 @@ class Rollover(object):
         elif np.sum(rolloff[_solvable]):
             # max between the stock that is rolling off and any specified stocks that we have is used for the allocation
             allocation[_solvable] = rolloff[_solvable] / sum(rolloff[_solvable])
-        elif not self.stock_changes[i] and not np.sum(rolloff[_solvable]): 
-            # we just need a placeholder because we have no stock changes and no rolloff
-            allocation[_solvable] = 1. / len(_solvable)
         elif (sum(np.diag(self.sales_share[i])) != self.num_techs or np.sum(self.sales_share[i]) != self.num_techs) and np.sum(np.sum(self.sales_share[i], axis=1)[_solvable]):
             # we have information in the sales share that we can use for allocation
             sales_share_allocation = np.sum(self.sales_share[i], axis=1)
@@ -346,22 +343,17 @@ class Rollover(object):
         if not sales_to_allocate:
             # we have no more sales, so we can just skip the rest
             return
+        
+        # this is the portion of sales that is simply the replacement of stock that is retiring
+        natural_replacements = min(self.rolloff_summed - self.sum_defined_sales, sales_to_allocate)
+        # this is the portion of sales that is from stock growth, and we may want to allocate it differently
+        stock_growth = sales_to_allocate - natural_replacements # this should be either zero or equal to stock changes [i]
 
         # if we have technologies that have existing stocks, but are not specified, we use them for allocation
         # otherwise, we use all_techs, which essentially just defaults to scaling up the specified stocks
         with_stock = set(np.nonzero(self.prior_year_stock)[0])
         with_stock_not_specified = list(with_stock - set(self.specified))
         eligible_for_allocation = with_stock_not_specified if len(with_stock_not_specified) else self.all_techs
-        # here we just want to scale up the stocks that have already been specified
-        if not len(with_stock_not_specified) and self.sum_defined_sales and self.stock_changes_as_min:
-            self.stock_change_by_tech[self.specified] += sales_to_allocate * self.defined_sales[self.specified] / self.sum_defined_sales
-            # we have allocated all our sales, so we can return
-            return
-
-        # this is the portion of sales that is simply the replacement of stock that is retiring
-        natural_replacements = min(self.rolloff_summed - self.sum_defined_sales, sales_to_allocate)
-        # this is the portion of sales that is from stock growth, and we may want to allocate it differently
-        stock_growth = sales_to_allocate - natural_replacements # this should be either zero or equal to stock changes [i]
 
         # this takes into account that some of the stocks are already specified
         stock_replacement_allocation = self.get_stock_replacement_allocation(eligible_for_allocation)
